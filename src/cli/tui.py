@@ -23,24 +23,24 @@ class DashboardGifWidget(Static):
         self.frame = 0
         self.frames = [
             "[bold #ff0055]┌─┐[/bold #ff0055] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #ff0055]┌─┐[/bold #ff0055]\n"
-            "  [#00ff66]* ACTIVE [SYSTEM][/#00ff66]\n"
-            "  [#e11d48]> SCANNING PORT[/#e11d48]\n"
-            "  [#38bdf8][Settings] MEMORY OK    [/#38bdf8]",
+            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#e11d48]⚲ SCANNING PORT[/#e11d48]\n"
+            "  [#38bdf8]⚙ MEMORY OK    [/#38bdf8]",
             
             "[bold #00ff66]├─┤[/bold #00ff66] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #00ff66]├─┤[/bold #00ff66]\n"
-            "  [#00ff66]* ACTIVE [SYSTEM][/#00ff66]\n"
-            "  [#e11d48]> SCANNING PORT.[/#e11d48]\n"
-            "  [#38bdf8][Settings] MEMORY OK.   [/#38bdf8]",
+            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#e11d48]⚲ SCANNING PORT.[/#e11d48]\n"
+            "  [#38bdf8]⚙ MEMORY OK.   [/#38bdf8]",
 
             "[bold #ff0055]└─┘[/bold #ff0055] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #ff0055]└─┘[/bold #ff0055]\n"
-            "  [#00ff66]* ACTIVE [SYSTEM][/#00ff66]\n"
-            "  [#e11d48]> SCANNING PORT..[/#e11d48]\n"
-            "  [#38bdf8][Settings] MEMORY OK..  [/#38bdf8]",
+            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#e11d48]⚲ SCANNING PORT..[/#e11d48]\n"
+            "  [#38bdf8]⚙ MEMORY OK..  [/#38bdf8]",
 
             "[bold #00ff66]├─┤[/bold #00ff66] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #00ff66]├─┤[/bold #00ff66]\n"
-            "  [#00ff66]* ACTIVE [SYSTEM][/#00ff66]\n"
-            "  [#e11d48]> SCANNING PORT...[/#e11d48]\n"
-            "  [#38bdf8][Settings] MEMORY OK... [/#38bdf8]"
+            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#e11d48]⚲ SCANNING PORT...[/#e11d48]\n"
+            "  [#38bdf8]⚙ MEMORY OK... [/#38bdf8]"
         ]
         self.update(self.frames[0])
         self.set_interval(0.4, self.animate)
@@ -52,7 +52,7 @@ class DashboardGifWidget(Static):
 class HelpScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         with Vertical(id="help-container"):
-            yield Label("[bold #ff0055][INFO] F-SOCIETY KEYBOARD INTERFACES[/bold #ff0055]", id="help-title")
+            yield Label("[bold #ff0055]⚡ F-SOCIETY KEYBOARD INTERFACES[/bold #ff0055]", id="help-title")
             yield Label("[bold #38bdf8]h[/bold #38bdf8]       - Switch to Home Tab", classes="help-key")
             yield Label("[bold #38bdf8]d[/bold #38bdf8]       - Switch to Download Tab", classes="help-key")
             yield Label("[bold #38bdf8]q[/bold #38bdf8]       - Switch to Queue Tab", classes="help-key")
@@ -91,7 +91,7 @@ class ErrorRecoveryScreen(ModalScreen):
 
 class HomeView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Static("[bold #ff0055][INFO] F-SOCIETY MEDIA DASHBOARD[/bold #ff0055]", classes="title")
+        yield Static("[bold #ff0055]⚡ F-SOCIETY MEDIA DASHBOARD[/bold #ff0055]", classes="title")
         
         # Stats row
         with Horizontal(id="stats-row"):
@@ -288,7 +288,7 @@ class ToolsView(Vertical):
 
 class SettingsView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Static("[bold #ff0055][Settings] SETTINGS CONFIG HUB[/bold #ff0055]", classes="title")
+        yield Static("[bold #ff0055]⚙️ SETTINGS CONFIG HUB[/bold #ff0055]", classes="title")
         
         yield Label("Download Target Folder:")
         yield Input(id="set-dl-dir")
@@ -322,7 +322,7 @@ class SettingsView(Vertical):
 
 class TopBar(Horizontal):
     def compose(self) -> ComposeResult:
-        yield Label("[bold #ff0055][INFO] F-SOCIETY[/bold #ff0055] [bold #00ff66]MEDIA CENTER[/bold #00ff66]", id="topbar-title")
+        yield Label("[bold #ff0055]⚡ F-SOCIETY[/bold #ff0055] [bold #00ff66]MEDIA CENTER[/bold #00ff66]", id="topbar-title")
         yield Label("SYSTEM STATUS: [bold #00ff66]ACTIVE[/bold #00ff66]", id="topbar-status")
 
 class FSocietyTUIApp(App):
@@ -563,12 +563,12 @@ class FSocietyTUIApp(App):
         with Horizontal():
             # Navigation Sidebar
             with ListView(id="sidebar"):
-                yield ListItem(Label("Home"), id="nav-home")
-                yield ListItem(Label("Download"), id="nav-download")
-                yield ListItem(Label("Queue"), id="nav-queue")
-                yield ListItem(Label("Library"), id="nav-library")
-                yield ListItem(Label("Tools"), id="nav-tools")
-                yield ListItem(Label("Settings"), id="nav-settings")
+                yield ListItem(Label("🏠 Home"), id="nav-home")
+                yield ListItem(Label("📥 Download"), id="nav-download")
+                yield ListItem(Label("⏳ Queue"), id="nav-queue")
+                yield ListItem(Label("📁 Library"), id="nav-library")
+                yield ListItem(Label("🛠️ Tools"), id="nav-tools")
+                yield ListItem(Label("⚙️ Settings"), id="nav-settings")
                 
             # Content Area
             with Container(id="content-container"):
