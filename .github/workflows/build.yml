@@ -3,6 +3,8 @@ name: CI/CD Build and Test
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main ]
 
@@ -91,3 +93,50 @@ jobs:
           dist/F-SOCIETY
           dist/F-SOCIETY.app
         if-no-files-found: ignore
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "F-SOCIETY MEDIA CENTER ${{ github.ref_name }} - Stable Release"
+          body: |
+            ## F-SOCIETY MEDIA CENTER Stable Release
+
+            We are pleased to announce the release of F-SOCIETY MEDIA CENTER.
+
+            ### Added Features
+            - Modern TUI dashboard (Textual-based) with looping hacker-theme status GIF widget.
+            - Redesigned Cyberpunk settings and diagnostics menus.
+            - Manual "Check for Updates" and "Force Update" section in Settings.
+            - Windows CMD launcher `run.bat` auto-pauses on exit failures.
+
+            ### CI/CD & Testing
+            - 100% deterministic, network-free, offline-safe unit tests in CI environment.
+            - Upgraded all GitHub Actions workflows to latest versions (`checkout@v4`, `setup-python@v5`, `upload-artifact@v4`).
+            - Proper mock testing system for `yt-dlp` metadata extraction.
+
+            ### Stability & Performance
+            - Fixed TUI layout/CSS parsing crashes (removed unsupported `font-family`, corrected `border-right`, fixed layout ordering).
+            - Disables full TUI when headless CI mode is detected (`CI=true`), executing diagnostic checks instead.
+            - Wrapped TUI startup in a safe exception handler block showing tracebacks in a clean console panel.
+          files: |
+            dist-artifacts/F-SOCIETY-windows-latest/F-SOCIETY.exe
+            dist-artifacts/F-SOCIETY-ubuntu-latest/F-SOCIETY
+            dist-artifacts/F-SOCIETY-macos-latest/F-SOCIETY
+            resources/tui_screenshot.png
