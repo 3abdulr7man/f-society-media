@@ -30,7 +30,7 @@ jobs:
 
     - name: Run test suite
       run: |
-        python tests/test_suite.py
+        python -m unittest discover tests
 
   build:
     name: Build Executables

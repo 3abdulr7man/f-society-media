@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Build Status](https://github.com/your-username/F-SOCIETY-YTDLP/workflows/CI/CD%20Build%20and%20Test/badge.svg)](https://github.com/your-username/F-SOCIETY-YTDLP/actions)
+[![Build Status](https://github.com/3abdulr7man/f-society-media/actions/workflows/build.yml/badge.svg)](https://github.com/3abdulr7man/f-society-media/actions)
 [![Release Version](https://img.shields.io/badge/Release-v1.0.0-red.svg)](CHANGELOG.md)
 
 **F-SOCIETY YT-DLP PRO** is a professional desktop client, media downloader, and library manager built with Python. It abstracts the power of `yt-dlp` and `FFmpeg` into a responsive dark-themed GUI and keyboard-controlled console interface.
