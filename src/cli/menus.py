@@ -778,53 +778,7 @@ def settings_flow():
 
 def run_cli_dashboard():
     config.load_settings()
-    
-    # 1. Automatic yt-dlp version check on startup
-    clear_screen()
-    print_banner()
-    console.print("\n[bold info]Checking yt-dlp version...[/bold info]")
-    local_v = updater.get_ytdlp_version()
-    latest_v = updater.get_latest_ytdlp_version()
-    
-    console.print(f"  Current: {local_v}")
-    console.print(f"  Latest : {latest_v}")
-    
-    if latest_v != "Unknown" and local_v != latest_v:
-        ans = console.input("\n[bold yellow]Update yt-dlp now? (Y/n): [/bold yellow]").strip().lower()
-        if ans != 'n':
-            console.print("Updating yt-dlp in child process...")
-            success, msg = updater.update_ytdlp()
-            if success:
-                console.print("[bold green]Update successful![/bold green]")
-            else:
-                console.print(f"[bold red]Update failed: {msg}[/bold red]")
-            time.sleep(1.5)
-            
-    # 2. Animated startup diagnostics verifier
-    clear_screen()
-    print_banner()
-    console.print("\n[bold info]Checking environment dependencies...[/bold info]")
-    time.sleep(0.3)
-    
-    # Check checks
-    env = updater.check_environment()
-    db_ok = quick_startup_check()
-    
-    print(f"  [bold green]✓[/bold green] Python ({env['python']['version']})")
-    time.sleep(0.2)
-    print(f"  [bold green]✓[/bold green] yt-dlp ({env['yt-dlp']['version']})")
-    time.sleep(0.2)
-    
-    ffmpeg_icon = "[bold green]✓[/bold green]" if env["ffmpeg"]["ok"] else "[bold red]✗[/bold red]"
-    print(f"  {ffmpeg_icon} FFmpeg")
-    time.sleep(0.2)
-    
-    db_icon = "[bold green]✓[/bold green]" if db_ok else "[bold yellow]⚠[/bold yellow]"
-    print(f"  {db_icon} Database")
-    time.sleep(0.5)
-    
     scheduler.start_scheduler()
-    
     try:
         from src.cli.tui import run_tui
         run_tui()

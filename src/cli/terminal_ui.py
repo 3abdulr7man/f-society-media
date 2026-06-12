@@ -20,9 +20,16 @@ def parse_cli_args_and_run():
     parser.add_argument("--watch", action="store_true", help="Watch clipboard for media URL copies")
     parser.add_argument("--doctor", action="store_true", help="Verify system environment diagnostics")
     parser.add_argument("--report", action="store_true", help="Export diagnostics report (combined with --doctor)")
+    parser.add_argument("--debug-ui", action="store_true", help="Validate and debug Textual TUI CSS/layouts")
 
     args, unknown = parser.parse_known_args()
     
+    # Check if UI debug mode is requested
+    if args.debug_ui:
+        from src.cli.tui import run_tui_debugger
+        run_tui_debugger()
+        sys.exit(0)
+        
     # Check if doctor mode is requested
     if args.doctor:
         from src.core.diagnostics import SystemDiagnostics
