@@ -28,7 +28,7 @@ class YouTubePlatformExtractor(BasePlatformExtractor):
             "platform": "YouTube"
         }
         
-    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook) -> bool:
+    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook, force_fallback: bool = False) -> bool:
         ydl_opts = {
             'format': quality_fmt or "bestvideo+bestaudio/best",
             'outtmpl': outtmpl,

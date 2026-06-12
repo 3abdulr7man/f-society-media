@@ -143,11 +143,12 @@ class DownloadThread(QThread):
     progress_signal = Signal(float, str, str, str, str, str, str)
     finished_signal = Signal(bool, str, object) # success, message, exception if failed
     
-    def __init__(self, url, mode, quality):
+    def __init__(self, url, mode, quality, force_fallback=False):
         super().__init__()
         self.url = url
         self.mode = mode
         self.quality = quality
+        self.force_fallback = force_fallback
         
     def run(self):
         def progress_cb(percent, speed, eta, downloaded, total, status, filename):
@@ -161,7 +162,7 @@ class DownloadThread(QThread):
         try:
             if self.mode == "video":
                 fmt = downloader.build_format_string(self.quality)
-                success = downloader.download_video_via_api(self.url, fmt)
+                success = downloader.download_video_via_api(self.url, fmt, force_fallback=self.force_fallback)
             elif self.mode == "audio":
                 success = downloader.download_audio_via_api(self.url, self.quality)
             elif self.mode == "images":
@@ -542,25 +543,19 @@ class MainWindow(QMainWindow):
             else:
                 QMessageBox.critical(self, "Failed", f"Update failed: {m}")
         elif clicked == fallback_btn and err.platform == "TikTok":
-            # Direct fallback trigger
+            url = self.url_input.text().strip()
+            mode = self.mode_combo.currentText()
+            quality_raw = self.qual_combo.currentText()
+            quality = quality_raw.split(" ")[0].replace("kbps", "")
+            
             self.status_label.setText("SYSTEM: FALLBACK ACTIVE")
-            from src.core.platforms.tiktok import TikTokPlatformExtractor
-            t_ext = TikTokPlatformExtractor()
-            outtmpl = str(Path(config.get("download_dir")) / config.get("output_template"))
+            self.start_btn.setEnabled(False)
+            self.progress_bar.setValue(0)
             
-            def mock_prog(d):
-                if d['status'] == 'downloading':
-                    percent = d['downloaded_bytes'] / d['total_bytes'] * 100
-                    self.progress_bar.setValue(int(percent))
-                    self.dl_info_label.setText("Status: Fallback downloading...")
-            
-            res = t_ext.download(self.url_input.text().strip(), "best", outtmpl, mock_prog)
-            self.status_label.setText("SYSTEM: READY")
-            if res:
-                QMessageBox.information(self, "Success", "Fallback download complete!")
-                self.refresh_home_stats()
-            else:
-                QMessageBox.critical(self, "Failed", "Fallback extraction failed.")
+            self.download_thread = DownloadThread(url, mode, quality, force_fallback=True)
+            self.download_thread.progress_signal.connect(self.on_download_progress)
+            self.download_thread.finished_signal.connect(self.on_download_finished)
+            self.download_thread.start()
 
     # 3. Queue Page
     def setup_queue_page(self):

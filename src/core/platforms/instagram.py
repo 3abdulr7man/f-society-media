@@ -35,7 +35,7 @@ class InstagramPlatformExtractor(BasePlatformExtractor):
             log_error(f"Instagram extraction failed: {e}")
             raise Exception(f"Instagram extraction failed. Cookies might be required. Details: {e}")
             
-    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook) -> bool:
+    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook, force_fallback: bool = False) -> bool:
         ydl_opts = {
             'format': quality_fmt or "best",
             'outtmpl': outtmpl,

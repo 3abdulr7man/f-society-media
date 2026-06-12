@@ -28,3 +28,9 @@ def mock_extract_info(self, url, *args, **kwargs):
 
 # Monkeypatch the real YoutubeDL.extract_info method globally for tests
 yt_dlp.YoutubeDL.extract_info = mock_extract_info
+
+def mock_download(self, targets, *args, **kwargs):
+    return 0
+
+yt_dlp.YoutubeDL.download = mock_download
+

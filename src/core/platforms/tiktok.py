@@ -64,7 +64,7 @@ class TikTokPlatformExtractor(BasePlatformExtractor):
             log_error(f"TikWM Fallback failed: {fallback_err}")
             raise Exception(f"Failed to extract TikTok media: {fallback_err}")
 
-    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook) -> bool:
+    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook, force_fallback: bool = False) -> bool:
         # We need to perform extract_metadata first to know if we need fallback
         try:
             meta = self.extract_metadata(url)
@@ -72,7 +72,7 @@ class TikTokPlatformExtractor(BasePlatformExtractor):
             log_error(f"TikTok download failed during metadata phase: {e}")
             return False
             
-        if not meta.get("is_fallback"):
+        if not force_fallback and not meta.get("is_fallback"):
             # Standard yt-dlp download
             ydl_opts = {
                 'format': quality_fmt or "best",

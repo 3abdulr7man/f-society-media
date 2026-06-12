@@ -14,6 +14,6 @@ class BasePlatformExtractor(ABC):
         pass
         
     @abstractmethod
-    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook) -> bool:
+    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook, force_fallback: bool = False) -> bool:
         """Execute media download."""
         pass

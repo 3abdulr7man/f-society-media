@@ -1,23 +1,16 @@
 import os
 import sys
 import datetime
-import threading
 from pathlib import Path
 
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.align import Align
-
 from src.core import config, database, ffmpeg, updater, downloader, queue, scheduler
-from src.core.diagnostics import quick_startup_check
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, Grid
-from textual.widgets import Header, Footer, Static, Input, Button, Select, Label, Switch, ListView, ListItem, DataTable
+from textual.widgets import Header, Footer, Static, Input, Button, Select, Label, Switch, ListView, ListItem, DataTable, ProgressBar, LoadingIndicator
 from textual.binding import Binding
 from textual.reactive import reactive
-from textual.worker import Worker, WorkerState
+from textual.screen import ModalScreen
 
 class DashboardGifWidget(Static):
     def on_mount(self) -> None:
@@ -49,6 +42,46 @@ class DashboardGifWidget(Static):
     def animate(self) -> None:
         self.update(self.frames[self.frame])
         self.frame = (self.frame + 1) % len(self.frames)
+
+class HelpScreen(ModalScreen):
+    def compose(self) -> ComposeResult:
+        with Vertical(id="help-container"):
+            yield Label("[bold #ff0055]⚡ F-SOCIETY KEYBOARD INTERFACES[/bold #ff0055]", id="help-title")
+            yield Label("[bold #38bdf8]h[/bold #38bdf8]       - Switch to Home Tab", classes="help-key")
+            yield Label("[bold #38bdf8]d[/bold #38bdf8]       - Switch to Download Tab", classes="help-key")
+            yield Label("[bold #38bdf8]q[/bold #38bdf8]       - Switch to Queue Tab", classes="help-key")
+            yield Label("[bold #38bdf8]l[/bold #38bdf8]       - Switch to Library Tab", classes="help-key")
+            yield Label("[bold #38bdf8]t[/bold #38bdf8]       - Switch to Tools Tab", classes="help-key")
+            yield Label("[bold #38bdf8]s[/bold #38bdf8]       - Switch to Settings Tab", classes="help-key")
+            yield Label("[bold #38bdf8]f1 / ?[/bold #38bdf8]  - Open this Help panel", classes="help-key")
+            yield Label("[bold #f43f5e]ctrl+q[/bold #f43f5e]  - Exit F-SOCIETY Tool", classes="help-key")
+            yield Button("Dismiss", variant="primary", id="btn-close-help")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-close-help":
+            self.dismiss()
+
+class ErrorRecoveryScreen(ModalScreen):
+    def __init__(self, platform, reason, solution):
+        super().__init__()
+        self.platform = platform
+        self.reason = reason
+        self.solution = solution
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="err-container"):
+            yield Label("[bold #ff0055]🚨 SYSTEM METADATA / DOWNLOAD ERROR[/bold #ff0055]", id="err-title")
+            yield Label(f"[bold #38bdf8]Platform:[/bold #38bdf8] {self.platform}", classes="err-info")
+            yield Label(f"[bold #38bdf8]Reason:[/bold #38bdf8] {self.reason}", classes="err-info")
+            yield Label(f"[bold #38bdf8]Recommended Solution:[/bold #38bdf8] {self.solution}", classes="err-info")
+            with Horizontal(classes="err-buttons"):
+                yield Button("Retry", variant="success", id="err-retry")
+                yield Button("Update Engine", variant="primary", id="err-update")
+                yield Button("Use Fallback", variant="warning", id="err-fallback")
+                yield Button("Cancel", variant="error", id="err-cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id)
 
 class HomeView(Vertical):
     def compose(self) -> ComposeResult:
@@ -104,11 +137,17 @@ class HomeView(Vertical):
                 
             history = database.get_download_logs()
             for item in history[:10]:
+                status = item.get("status", "success")
+                if status == "success":
+                    status_styled = "[bold #00ff66]success[/bold #00ff66]"
+                else:
+                    status_styled = "[bold #ff0055]failed[/bold #ff0055]"
+                
                 table.add_row(
                     item.get("platform", "Unknown"),
                     item.get("type", "video"),
                     item.get("quality", "best"),
-                    item.get("status", "success"),
+                    status_styled,
                     item.get("time", "")
                 )
         except Exception:
@@ -116,7 +155,7 @@ class HomeView(Vertical):
 
 class DownloadView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Static("[bold #ff0055]📥 DOWNLOAD CENTER[/bold #ff0055]", classes="title")
+        yield Static("[bold #ff0055]📥 SMART DOWNLOAD CENTER[/bold #ff0055]", classes="title")
         yield Label("Media URL:")
         yield Input(placeholder="Paste YouTube, TikTok, Instagram, Twitter link here...", id="dl-url")
         
@@ -125,6 +164,7 @@ class DownloadView(Vertical):
             yield Label("[bold #38bdf8]Meta Details:[/bold #38bdf8]", id="meta-title")
             yield Label("Duration: N/A", id="meta-duration")
             yield Label("Uploader: N/A", id="meta-uploader")
+            yield LoadingIndicator(id="meta-loading")
 
         with Horizontal(classes="select-row"):
             with Vertical():
@@ -146,6 +186,7 @@ class DownloadView(Vertical):
                 yield Button("START DOWNLOAD", variant="success", id="btn-start-download")
                 
         yield Static("Progress: Idle", id="dl-progress-text")
+        yield ProgressBar(show_eta=True, show_percentage=True, id="dl-progress-bar")
         yield Static("ETA: N/A | Speed: N/A", id="dl-speed-eta")
 
 class QueueView(Vertical):
@@ -167,12 +208,22 @@ class QueueView(Vertical):
             q_manager = queue.QueueManager()
             items = q_manager.get_items()
             for idx, item in enumerate(items, 1):
+                status = item.get("status", "pending")
+                if status == "success":
+                    status_styled = "[bold #00ff66]completed[/bold #00ff66]"
+                elif status == "failed":
+                    status_styled = "[bold #ff0055]failed[/bold #ff0055]"
+                elif status == "downloading":
+                    status_styled = "[bold #38bdf8]downloading...[/bold #38bdf8]"
+                else:
+                    status_styled = "[dim #cbd5e1]pending[/dim #cbd5e1]"
+                
                 table.add_row(
                     str(idx),
                     item.get("url", "")[:50],
                     item.get("mode", "video"),
                     item.get("quality", "best"),
-                    item.get("status", "pending")
+                    status_styled
                 )
         except Exception:
             pass
@@ -263,6 +314,11 @@ class SettingsView(Vertical):
         except Exception:
             pass
 
+class TopBar(Horizontal):
+    def compose(self) -> ComposeResult:
+        yield Label("[bold #ff0055]⚡ F-SOCIETY[/bold #ff0055] [bold #00ff66]MEDIA CENTER[/bold #00ff66]", id="topbar-title")
+        yield Label("SYSTEM STATUS: [bold #00ff66]ACTIVE[/bold #00ff66]", id="topbar-status")
+
 class FSocietyTUIApp(App):
     CSS = """
     Screen {
@@ -270,13 +326,21 @@ class FSocietyTUIApp(App):
         color: #cbd5e1;
     }
     
-    #title-panel {
+    TopBar {
         background: #090d12;
-        border: double #ff0055;
-        margin: 1 2;
-        padding: 1 2;
-        height: auto;
-        color: #00ff66;
+        border-bottom: solid #ff0055;
+        height: 3;
+        align: left middle;
+        padding: 0 2;
+    }
+    
+    #topbar-title {
+        width: 1fr;
+        font-size: 15;
+    }
+    
+    #topbar-status {
+        color: #94a3b8;
     }
     
     #stats-row {
@@ -299,6 +363,7 @@ class FSocietyTUIApp(App):
     .title {
         text-style: bold;
         margin-bottom: 1;
+        color: #ff0055;
     }
     
     .section-title {
@@ -323,6 +388,12 @@ class FSocietyTUIApp(App):
         padding: 1 2;
         margin: 1 0;
         height: auto;
+    }
+    
+    #meta-loading {
+        color: #ff0055;
+        height: 3;
+        content-align: center middle;
     }
     
     .select-row {
@@ -374,6 +445,19 @@ class FSocietyTUIApp(App):
         text-style: bold;
         margin-top: 1;
     }
+    #dl-progress-bar {
+        width: 1fr;
+        margin: 1 0;
+    }
+    ProgressBar > .bar--complete {
+        color: #00ff66;
+    }
+    ProgressBar > .bar--bar {
+        color: #38bdf8;
+    }
+    ProgressBar > .bar--percent {
+        color: #ffffff;
+    }
     #dl-speed-eta {
         color: #38bdf8;
         margin-bottom: 1;
@@ -391,33 +475,85 @@ class FSocietyTUIApp(App):
         margin: 1 0;
         height: auto;
     }
+
+    /* Modal Styles */
+    HelpScreen, ErrorRecoveryScreen {
+        align: center middle;
+        background: rgba(0, 0, 0, 0.7);
+    }
+    
+    #help-container {
+        width: 65;
+        height: auto;
+        background: #0f172a;
+        border: double #ff0055;
+        padding: 1 2;
+    }
+    
+    #help-title {
+        text-align: center;
+        color: #ff0055;
+        text-style: bold;
+        margin-bottom: 1;
+    }
+    
+    .help-key {
+        color: #cbd5e1;
+        margin-bottom: 1;
+    }
+    
+    #btn-close-help {
+        margin-top: 1;
+        horizontal-align: center;
+    }
+    
+    #err-container {
+        width: 75;
+        height: auto;
+        background: #0f172a;
+        border: double #ff0055;
+        padding: 1 2;
+    }
+    
+    #err-title {
+        text-align: center;
+        color: #ff0055;
+        text-style: bold;
+        margin-bottom: 1;
+    }
+    
+    .err-info {
+        color: #cbd5e1;
+        margin-bottom: 1;
+    }
+    
+    .err-buttons {
+        height: auto;
+        align: center middle;
+        margin-top: 1;
+    }
+    
+    .err-buttons > Button {
+        margin-right: 1;
+    }
     """
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=True),
-        Binding("h", "switch_view('home')", "Home", show=False),
-        Binding("d", "switch_view('download')", "Download", show=False),
-        Binding("q", "switch_view('queue')", "Queue", show=False),
-        Binding("l", "switch_view('library')", "Library", show=False),
-        Binding("t", "switch_view('tools')", "Tools", show=False),
-        Binding("s", "switch_view('settings')", "Settings", show=False),
+        Binding("h", "switch_view('home')", "Home", show=True),
+        Binding("d", "switch_view('download')", "Download", show=True),
+        Binding("q", "switch_view('queue')", "Queue", show=True),
+        Binding("l", "switch_view('library')", "Library", show=True),
+        Binding("t", "switch_view('tools')", "Tools", show=True),
+        Binding("s", "switch_view('settings')", "Settings", show=True),
+        Binding("f1", "show_help", "Help", show=True),
+        Binding("question_mark", "show_help", "Help", show=False),
     ]
 
     current_view = reactive("home")
 
     def compose(self) -> ComposeResult:
-        # Title panel
-        with Container(id="title-panel"):
-            yield Static(
-                "[bold red]"
-                " ███████╗      ███████╗ ██████╗  ██████╗██╗███████╗████████╗██╗   ██╗\n"
-                " ██╔════╝      ██╔════╝██╔═══██╗██╔════╝██║██╔════╝╚══██╔══╝╚██╗ ██╔╝\n"
-                " █████╗        ███████╗██║   ██║██║     ██║█████╗     ██║    ╚████╔╝ \n"
-                " ██╔══╝        ╚════██║██║   ██║██║     ██║██╔══╝     ██║     ╚██╔╝  \n"
-                " ██║           ███████║╚██████╔╝╚██████╗██║███████╗   ██║      ██║   \n"
-                " ╚═╝           ╚══════╝ ╚═════╝  ╚═════╝╚═╝╚══════╝   ╚═╝      ╚═╝"
-                "[/bold red]"
-            )
+        yield TopBar()
             
         with Horizontal():
             # Navigation Sidebar
@@ -443,6 +579,7 @@ class FSocietyTUIApp(App):
     def on_mount(self) -> None:
         self.show_view("home")
         self.query_one("#view-home", HomeView).refresh_stats()
+        self.query_one("#meta-loading", LoadingIndicator).display = False
 
     def show_view(self, view_name: str) -> None:
         self.current_view = view_name
@@ -460,6 +597,20 @@ class FSocietyTUIApp(App):
             self.query_one("#view-library", LibraryView).refresh_library()
         elif view_name == "settings":
             self.query_one("#view-settings", SettingsView).load_config()
+
+    def action_switch_view(self, view_name: str) -> None:
+        self.show_view(view_name)
+        sidebar = self.query_one("#sidebar", ListView)
+        try:
+            for idx, item in enumerate(sidebar.children):
+                if item.id == f"nav-{view_name}":
+                    sidebar.index = idx
+                    break
+        except Exception:
+            pass
+
+    def action_show_help(self) -> None:
+        self.push_screen(HelpScreen())
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         nav_id = event.item.id
@@ -481,7 +632,8 @@ class FSocietyTUIApp(App):
         if event.input.id == "dl-url":
             url = event.value.strip()
             if downloader.validate_url(url):
-                self.query_one("#meta-title", Label).update("[bold #38bdf8]Fetching metadata in background...[/bold #38bdf8]")
+                self.query_one("#meta-title", Label).update("[bold #38bdf8]Fetching metadata details...[/bold #38bdf8]")
+                self.query_one("#meta-loading", LoadingIndicator).display = True
                 self.run_worker(self.fetch_meta_task(url), thread=True)
 
     async def fetch_meta_task(self, url: str) -> None:
@@ -490,7 +642,6 @@ class FSocietyTUIApp(App):
             title = info.get("title", "Unknown")
             duration = downloader.format_duration(info.get("duration"))
             uploader = info.get("uploader", "Unknown")
-            
             self.call_from_thread(self.update_meta_labels, title, duration, uploader)
         else:
             self.call_from_thread(self.update_meta_labels, f"Fetch failed: {err[:30]}", "N/A", "N/A")
@@ -499,6 +650,7 @@ class FSocietyTUIApp(App):
         self.query_one("#meta-title", Label).update(f"[bold #ffffff]Title: {title}[/bold #ffffff]")
         self.query_one("#meta-duration", Label).update(f"Duration: {duration}")
         self.query_one("#meta-uploader", Label).update(f"Uploader: {uploader}")
+        self.query_one("#meta-loading", LoadingIndicator).display = False
 
     # Downloader execute
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -514,6 +666,7 @@ class FSocietyTUIApp(App):
             
             self.query_one("#btn-start-download", Button).disabled = True
             self.query_one("#dl-progress-text", Static).update("Starting download...")
+            self.query_one("#dl-progress-bar", ProgressBar).progress = 0
             self.run_worker(self.download_task(url, mode, quality), thread=True)
             
         elif btn_id == "btn-save-settings":
@@ -537,7 +690,6 @@ class FSocietyTUIApp(App):
             self.run_worker(self.force_update_task(), thread=True)
             
         elif btn_id == "btn-queue-add":
-            # Add URL from clipboard or input dialog (here from clipboard)
             try:
                 import tkinter as tk
                 root = tk.Tk()
@@ -568,7 +720,6 @@ class FSocietyTUIApp(App):
             self.notify("Library scan complete.")
 
         elif btn_id == "btn-lib-play":
-            # Play selected file
             try:
                 table = self.query_one("#lib-table", DataTable)
                 row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
@@ -680,7 +831,7 @@ class FSocietyTUIApp(App):
             self.notify(f"Failed to update yt-dlp: {msg}", severity="error")
 
     # Downloader Worker
-    async def download_task(self, url: str, mode: str, quality: str) -> None:
+    async def download_task(self, url: str, mode: str, quality: str, force_fallback: bool = False) -> None:
         def progress_cb(percent, speed, eta, downloaded, total, status, filename):
             self.call_from_thread(self.update_download_progress, percent, speed, eta, downloaded, total, status, filename)
 
@@ -693,7 +844,7 @@ class FSocietyTUIApp(App):
         try:
             if mode == "video":
                 fmt = downloader.build_format_string(quality)
-                success = downloader.download_video_via_api(url, fmt)
+                success = downloader.download_video_via_api(url, fmt, force_fallback=force_fallback)
             elif mode == "audio":
                 success = downloader.download_audio_via_api(url, quality)
             elif mode == "images":
@@ -706,28 +857,40 @@ class FSocietyTUIApp(App):
             err_msg = str(e)
 
         downloader.unregister_progress_callback(progress_cb)
-        self.call_from_thread(self.on_download_finished, success, err_msg, err_exception)
+        self.call_from_thread(self.on_download_finished, url, mode, quality, success, err_msg, err_exception)
 
     def update_download_progress(self, percent, speed, eta, downloaded, total, status, filename):
         self.query_one("#dl-progress-text", Static).update(f"Progress: {int(percent)}% - {status.upper()}")
+        self.query_one("#dl-progress-bar", ProgressBar).progress = percent
         self.query_one("#dl-speed-eta", Static).update(f"ETA: {eta} | Speed: {speed} | Downloaded: {downloaded}/{total}")
 
-    def on_download_finished(self, success: bool, err_msg: str, err_exception: downloader.DownloaderError) -> None:
+    def on_download_finished(self, url: str, mode: str, quality: str, success: bool, err_msg: str, err_exception: downloader.DownloaderError) -> None:
         self.query_one("#btn-start-download", Button).disabled = False
         if success:
             self.query_one("#dl-progress-text", Static).update("[bold #00ff66]Download Complete![/bold #00ff66]")
+            self.query_one("#dl-progress-bar", ProgressBar).progress = 100
             self.notify("Media download successful!")
         else:
             if err_exception:
-                # Show structured error dialog/prompt details
-                error_box = (
-                    f"[bold #ff0055]Download Error Detected![/bold #ff0055]\n"
-                    f"Platform: {err_exception.platform}\n"
-                    f"Reason: {err_exception.reason}\n"
-                    f"Solution: {err_exception.solution}"
+                def handle_recovery(action):
+                    if action == "err-retry":
+                        self.query_one("#btn-start-download", Button).disabled = True
+                        self.query_one("#dl-progress-text", Static).update("Retrying download...")
+                        self.query_one("#dl-progress-bar", ProgressBar).progress = 0
+                        self.run_worker(self.download_task(url, mode, quality), thread=True)
+                    elif action == "err-update":
+                        self.notify("Updating yt-dlp in background...")
+                        self.run_worker(self.force_update_task(), thread=True)
+                    elif action == "err-fallback" and err_exception.platform == "TikTok":
+                        self.query_one("#btn-start-download", Button).disabled = True
+                        self.query_one("#dl-progress-text", Static).update("Running fallback download...")
+                        self.query_one("#dl-progress-bar", ProgressBar).progress = 0
+                        self.run_worker(self.download_task(url, mode, quality, force_fallback=True), thread=True)
+                
+                self.push_screen(
+                    ErrorRecoveryScreen(err_exception.platform, err_exception.reason, err_exception.solution),
+                    handle_recovery
                 )
-                self.query_one("#dl-progress-text", Static).update(error_box)
-                self.notify("Download Failed: Platform Extractor Issue", severity="error")
             else:
                 self.query_one("#dl-progress-text", Static).update(f"[bold #ff0055]Failed: {err_msg[:40]}[/bold #ff0055]")
                 self.notify("Download Failed.", severity="error")
@@ -792,7 +955,7 @@ def run_tui_debugger():
         
     console.print("\n[bold yellow]Widget Tree Preview:[/bold yellow]")
     console.print("FSocietyTUIApp")
-    console.print(" ├── Header (nav)")
+    console.print(" ├── TopBar")
     console.print(" ├── Horizontal (layout)")
     console.print(" │    ├── ListView (sidebar)")
     console.print(" │    └── Container (content-container)")

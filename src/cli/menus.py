@@ -223,11 +223,11 @@ def download_video_flow():
             if action == "retry":
                 continue
             elif action == "fallback" and platform == "TikTok":
-                # Trigger fallback via platform tiktok
-                from src.core.platforms.tiktok import TikTokPlatformExtractor
-                t_ext = TikTokPlatformExtractor()
-                outtmpl = str(Path(config.get("download_dir")) / config.get("output_template"))
-                t_ext.download(url, "best", outtmpl, downloader.progress_hook)
+                try:
+                    downloader.download_video_via_api(url, "best", force_fallback=True)
+                except Exception as fallback_err:
+                    console.print(f"[bold red]Fallback failed: {fallback_err}[/bold red]")
+                    time.sleep(2)
                 break
             break
     console.input("\nPress Enter to continue...")

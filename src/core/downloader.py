@@ -323,7 +323,7 @@ def handle_downloader_exception(url, err_msg):
     else:
         raise DownloaderError(platform, f"Download failed: {err_msg}", "Check internet access or run `fs --doctor` to check system readiness.")
 
-def download_video_via_api(url, quality_fmt=None, retries=3):
+def download_video_via_api(url, quality_fmt=None, retries=3, force_fallback=False):
     platform = detect_platform(url)
     try:
         extractor = get_extractor(url)
@@ -358,7 +358,7 @@ def download_video_via_api(url, quality_fmt=None, retries=3):
             
         success = False
         if extractor:
-            success = extractor.download(url, quality_fmt, expected_filename, progress_hook)
+            success = extractor.download(url, quality_fmt, expected_filename, progress_hook, force_fallback=force_fallback)
         else:
             # Fallback to standard yt-dlp download
             ydl_opts = get_ydl_opts("video", quality_fmt, expected_filename)

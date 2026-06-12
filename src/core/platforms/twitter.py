@@ -35,7 +35,7 @@ class TwitterPlatformExtractor(BasePlatformExtractor):
             log_error(f"Twitter extraction failed: {e}")
             raise Exception(f"Twitter extraction failed. Details: {e}")
             
-    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook) -> bool:
+    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook, force_fallback: bool = False) -> bool:
         ydl_opts = {
             'format': quality_fmt or "best",
             'outtmpl': outtmpl,

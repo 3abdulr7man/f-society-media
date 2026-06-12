@@ -1,116 +1,147 @@
-# F-SOCIETY YT-DLP PRO
+# ⚡ F-SOCIETY MEDIA CENTER
 
 [![Python Version](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Build Status](https://github.com/3abdulr7man/f-society-media/actions/workflows/build.yml/badge.svg)](https://github.com/3abdulr7man/f-society-media/actions)
 [![Release Version](https://img.shields.io/badge/Release-v1.0.0-red.svg)](CHANGELOG.md)
 
-**F-SOCIETY YT-DLP PRO** is a professional desktop client, media downloader, and library manager built with Python. It abstracts the power of `yt-dlp` and `FFmpeg` into a responsive dark-themed GUI and keyboard-controlled console interface.
+**F-SOCIETY MEDIA CENTER** is a premium, open-source terminal user interface (TUI), desktop GUI, and CLI scripting wrapper for `yt-dlp` and `FFmpeg`. It delivers a fully featured environment for media extraction, queue processing, database tracking, and FFmpeg post-processing under a unified cyberpunk aesthetic.
 
 ---
 
-## Features
+## 🚀 Key Features
 
-- :white_check_mark: **GUI Interface**: Fully featured dark-mode PySide6 desktop client.
-- :white_check_mark: **Interactive CLI**: Interactive Rich terminal selectors navigated via arrow-keys + enter selection.
-- :white_check_mark: **Downloader**: Smart engine resolving format links, downloads resolutions up to 4K, downloads playlists, and channels.
-- :white_check_mark: **FFmpeg Tools**: In-app graphical media trimmer, encoder, converter, sound separator, and track binder.
-- :white_check_mark: **Queue System**: Thread-safe parallel downloads dispatcher with speed overrides.
-- :white_check_mark: **Media Library**: Embedded explorer directory scanner to play, delete, or reprocess downloaded media files.
-- :white_check_mark: **Plugin System**: Dynamic modular hooks for custom site scripts.
-- :white_check_mark: **Auto Updates**: Environment dependency logs validation and automated `yt-dlp` updates.
+*   **📺 Modern Textual TUI**: A terminal interface featuring responsive layouts, custom modal screens (Help overlays, Error recovery dialogs), native `ProgressBar` widgets, active sidebar highlight tracking, and animated status widgets.
+*   **💻 Desktop GUI**: A clean, cyberpunk-themed PySide6 application displaying metadata details, interactive downloads, settings hubs, media libraries, and logs in background threads.
+*   **🛠️ FFmpeg Studio**: Extract audio tracks, convert video formats (MP4/MKV/etc.), trim files, merge video and audio, and compress media directly from the UI.
+*   **⏳ Concurrency Batch Queue**: A database-backed queue manager supporting clipboard auto-detection, batch updates, and asynchronous download workers.
+*   **📂 Local Media Library**: Scan download folders, explore metadata details, and open, play, or delete media files through the UI.
+*   **🩺 Diagnostics System (`--doctor`)**: Headless health checker verifying Python packages, local `yt-dlp` updates, FFmpeg binary availability, SQLite schemas, and disk capacity.
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 ![F-SOCIETY TUI Dashboard](resources/tui_screenshot.png)
 
 ---
 
-## Repository Structure
+## 📂 Repository Structure
 
 ```
-F-SOCIETY-YTDLP/
-├── src/                  # Core modules, CLI dashboard, and PySide6 windows
-├── tests/                # Automated testing suites
-├── docs/                 # Multi-page markdown guides
-├── resources/            # Image assets, banners, stylesheets
-├── plugins/              # Dynamic python modules
-├── examples/             # Code samples
-├── README.md             # Standard manual
-├── LICENSE               # MIT license file
-├── CONTRIBUTING.md       # Contributing policy guidelines
-├── CODE_OF_CONDUCT.md    # Contributor Covenant instructions
-├── CHANGELOG.md          # Version changelogs tracing
-└── SECURITY.md           # Secure vulnerability reports guidelines
+f-society-media/
+├── src/                  # Application source code
+│   ├── cli/              # Textual TUI components and CLI dashboard
+│   ├── gui/              # PySide6 desktop GUI code
+│   └── core/             # Database controllers, logger, and extractor engines
+│       └── platforms/    # Custom platforms metadata extractors (YouTube, TikTok, etc.)
+├── tests/                # Testing suite
+│   ├── unit/             # Offline, deterministic mock-based unit tests
+│   ├── integration/      # Local integration tests requiring network connection
+│   └── mocks/            # Global mock system for yt-dlp and network calls
+├── docs/                 # Exhaustive guides
+├── requirements.txt      # Dependency specification
+├── pyproject.toml        # Modern packaging metadata
+└── setup.py              # Classic setuptools installer
 ```
 
 ---
 
-## Installation
+## ⚙️ Installation
 
-Install directly from PyPI (when published) or source:
+Install from source using `pip` in editable or production mode:
 
 ```bash
-# Install PyPI package
-pip install f-society
+# Clone the repository
+git clone https://github.com/3abdulr7man/f-society-media.git
+cd f-society-media
 
-# Or from source
+# Install requirements and script entry points
 pip install -e .
 ```
 
 ---
 
-## Usage Guide
+## ⚡ Quick Start & Usage
 
-You can launch the program using entry points `fs` or `f-society`.
+F-SOCIETY installs entry points `fs` and `f-society` directly to your terminal.
 
-### A. Run Interactive CLI
-Run the executable command:
+### 1. Launch Modern Terminal TUI (Default)
+Simply run the console command:
 ```bash
-fs
+f-society
 ```
-Use arrow keys to navigate and press enter to select.
+*   **Navigation**: Use **Arrow Keys** to change sidebar focus.
+*   **Quick Tabs**: Press `h` (Home), `d` (Download), `q` (Queue), `l` (Library), `t` (Tools), or `s` (Settings).
+*   **Help Panel**: Press `F1` or `?` at any time to overlay keyboard instructions.
+*   **Exit**: Press `Ctrl+Q`.
 
-### B. Run Desktop GUI App
-Run the graphical user interface:
+### 2. Launch Desktop GUI App
 ```bash
-fs --gui
-```
-
-### C. Run Smart Clipboard Watcher
-```bash
-fs --watch
+f-society --gui
 ```
 
----
-
-## CLI Scripting Commands
-
-Directly script download engines:
+### 3. Run Clipboard Smart Watcher
 ```bash
-# Download standard video
-fs "https://www.youtube.com/watch?v=..."
+f-society --watch
+```
 
-# Extract high quality audio
-fs "https://www.youtube.com/watch?v=..." --audio --quality 320
-
-# Download channel stream
-fs "https://www.youtube.com/user/..." --channel
-
-# Target directory override
-fs "https://www.youtube.com/watch?v=..." --dir "D:/Downloads"
+### 4. Run System Diagnostics
+```bash
+f-society --doctor
+```
+Add the `--report` flag to write system logs directly to `diagnostic_report.txt`:
+```bash
+f-society --doctor --report
 ```
 
 ---
 
-## Documentation
+## 🎛️ Command Line Scripting Reference
 
-Exhaustive markdown guides can be found inside the `docs/` folder:
-- [Installation Guide](docs/Installation.md)
-- [Features Manual](docs/Features.md)
-- [Command Line Interface (CLI)](docs/CLI.md)
-- [Graphical Desktop GUI](docs/GUI.md)
-- [Configuration Settings](docs/Configuration.md)
-- [Troubleshooting Reference](docs/Troubleshooting.md)
+Directly execute downloader tasks from script command lines:
+
+```bash
+# Standard video download
+f-society "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+# Extract audio-only file (320kbps MP3)
+f-society "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --audio --quality 320
+
+# Download image gallery post (Instagram/TikTok slideshows)
+f-society "https://tiktok.com/@user/photo/123456" --images
+
+# Save to a custom target directory
+f-society "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --dir "D:/Downloads"
+```
+
+---
+
+## 🛠️ Developer & Testing Architecture
+
+### Offline Testing & CI Isolation
+To ensure 100% stable CI/CD runs, tests are split into two layers:
+1.  **Unit Tests (`tests/unit`)**: Completely offline and network-isolated. Utilizing `tests/mocks/ytdlp_mock.py`, the `YoutubeDL` extraction and download methods are patched globally. No real internet requests occur.
+2.  **Integration Tests (`tests/integration`)**: Local network-reliant tests skipped dynamically in CI environments using `@unittest.skipIf(os.getenv("CI") == "true")`.
+
+Execute the unit test suite locally:
+```bash
+python -m unittest discover tests/unit -v
+```
+
+---
+
+## 🩺 Troubleshooting
+
+*   **YouTube Bot Block**: If extraction fails due to YouTube bot verification requests, go to **Settings Hub** and configure a valid `cookie_file` exported from your browser.
+*   **Missing FFmpeg Warnings**: FFmpeg binaries are required for media trimming, audio extraction, and merging. Run `f-society --doctor` to verify binary presence. On Windows, ensure `ffmpeg.exe` and `ffprobe.exe` are in your system PATH variables.
+*   **Database Corruption**: If the SQLite database file (`f_society.db`) gets locked or corrupted, delete it. The application will rebuild the schema and import old JSON migration configurations automatically on the next startup.
+
+---
+
+## 🛣️ Roadmap
+
+*   [ ] Dynamic GUI custom skinning editor.
+*   [ ] Multi-threaded concurrent download queues for GUI.
+*   [ ] Advanced metadata tags editor via FFmpeg metadata streams.
+*   [ ] Browser extension for single-click downloads routing.
