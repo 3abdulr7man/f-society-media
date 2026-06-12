@@ -1,0 +1,41 @@
+# Python files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# SQLite Database & user data files
+*.db
+*.json
+!info.json
+*.log
+cookies.txt
+
+# PyInstaller / Executable compilation builds
+*.manifest
+*.spec
+F-SOCIETY.exe
+F-SOCIETY.app
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

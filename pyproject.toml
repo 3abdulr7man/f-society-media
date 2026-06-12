@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f-society-media"
+version = "1.0.0"
+description = "F-SOCIETY YT-DLP TOOL - Professional Media Management Application"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+dependencies = [
+    "yt-dlp",
+    "rich",
+    "PySide6",
+    "textual",
+]
+
+[project.scripts]
+fs = "main:entry_point"
+f-society = "main:entry_point"
+
+[tool.setuptools]
+py-modules = ["main"]
+packages = ["src", "src.core", "src.cli", "src.gui", "src.core.platforms"]

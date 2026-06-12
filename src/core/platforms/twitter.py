@@ -1,0 +1,52 @@
+import yt_dlp
+from src.core.platforms.base import BasePlatformExtractor
+from src.core import config
+from src.core.logger import log_error
+
+class TwitterPlatformExtractor(BasePlatformExtractor):
+    
+    @classmethod
+    def detect(cls, url: str) -> bool:
+        url_lower = url.lower()
+        return "x.com" in url_lower or "twitter.com" in url_lower
+        
+    def extract_metadata(self, url: str) -> dict:
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+        }
+        if config.get("cookie_file"):
+            ydl_opts['cookiefile'] = config.get("cookie_file")
+            
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+            return {
+                "title": info.get("title") or info.get("description", "Twitter Post")[:50],
+                "thumbnail": info.get("thumbnail") or "",
+                "duration": info.get("duration", 0),
+                "uploader": info.get("uploader", "Twitter User"),
+                "resolution": info.get("resolution") or "N/A",
+                "formats": info.get("formats", []),
+                "platform": "Twitter/X"
+            }
+        except Exception as e:
+            log_error(f"Twitter extraction failed: {e}")
+            raise Exception(f"Twitter extraction failed. Details: {e}")
+            
+    def download(self, url: str, quality_fmt: str, outtmpl: str, progress_hook) -> bool:
+        ydl_opts = {
+            'format': quality_fmt or "best",
+            'outtmpl': outtmpl,
+            'quiet': True,
+            'no_warnings': True,
+            'progress_hooks': [progress_hook],
+            'noprogress': True
+        }
+        if config.get("cookie_file"):
+            ydl_opts['cookiefile'] = config.get("cookie_file")
+            
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        return True

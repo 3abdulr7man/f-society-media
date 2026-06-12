@@ -1,0 +1,646 @@
+import os
+import sys
+import datetime
+import threading
+from pathlib import Path
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.align import Align
+
+from src.core import config, database, ffmpeg, updater, downloader, queue, scheduler
+from src.core.diagnostics import quick_startup_check
+
+from textual.app import App, ComposeResult
+from textual.containers import Container, Horizontal, Vertical, Grid
+from textual.widgets import Header, Footer, Static, Input, Button, Select, Label, Switch, ListView, ListItem, DataTable
+from textual.binding import Binding
+from textual.reactive import reactive
+from textual.worker import Worker, WorkerState
+
+class HomeView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Static("[bold #ff0055]⚡ F-SOCIETY MEDIA DASHBOARD[/bold #ff0055]", classes="title")
+        
+        # Stats row
+        with Horizontal(id="stats-row"):
+            yield Static("Downloads\n0", id="stat-downloads", classes="card")
+            yield Static("Completed\n0", id="stat-completed", classes="card")
+            yield Static("Storage Used\n0.00 GB", id="stat-storage", classes="card")
+            
+        yield Label("[bold #38bdf8]Recent Database Downloads:[/bold #38bdf8]", classes="section-title")
+        yield DataTable(id="recent-table")
+
+    def refresh_stats(self) -> None:
+        try:
+            logs = database.get_download_logs()
+            total = len(logs)
+            completed = sum(1 for log in logs if log.get("status") == "success")
+        except Exception:
+            total = 0
+            completed = 0
+
+        # Calculate storage usage
+        try:
+            d_dir = Path(config.get("download_dir"))
+            total_size = 0
+            if d_dir.exists():
+                for f in d_dir.glob("**/*"):
+                    if f.is_file():
+                        total_size += f.stat().st_size
+            storage_gb = total_size / (1024 * 1024 * 1024)
+        except Exception:
+            storage_gb = 0.0
+
+        try:
+            self.query_one("#stat-downloads", Static).update(f"Downloads\n[bold #38bdf8]{total}[/bold #38bdf8]")
+            self.query_one("#stat-completed", Static).update(f"Completed\n[bold #00ff66]{completed}[/bold #00ff66]")
+            self.query_one("#stat-storage", Static).update(f"Storage Used\n[bold #f59e0b]{storage_gb:.2f} GB[/bold #f59e0b]")
+        except Exception:
+            pass
+
+        # Populate table
+        try:
+            table = self.query_one("#recent-table", DataTable)
+            table.clear()
+            
+            # Setup columns if needed
+            if not table.columns:
+                table.add_columns("Platform", "Type", "Quality", "Status", "Timestamp")
+                
+            history = database.get_download_logs()
+            for item in history[:10]:
+                table.add_row(
+                    item.get("platform", "Unknown"),
+                    item.get("type", "video"),
+                    item.get("quality", "best"),
+                    item.get("status", "success"),
+                    item.get("time", "")
+                )
+        except Exception:
+            pass
+
+class DownloadView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Static("[bold #ff0055]📥 DOWNLOAD CENTER[/bold #ff0055]", classes="title")
+        yield Label("Media URL:")
+        yield Input(placeholder="Paste YouTube, TikTok, Instagram, Twitter link here...", id="dl-url")
+        
+        # Details Card
+        with Vertical(id="meta-card"):
+            yield Label("[bold #38bdf8]Meta Details:[/bold #38bdf8]", id="meta-title")
+            yield Label("Duration: N/A", id="meta-duration")
+            yield Label("Uploader: N/A", id="meta-uploader")
+
+        with Horizontal(classes="select-row"):
+            with Vertical():
+                yield Label("Mode:")
+                yield Select([("video", "video"), ("audio", "audio"), ("images", "images")], value="video", id="dl-mode")
+            with Vertical():
+                yield Label("Quality Resolution:")
+                yield Select([
+                    ("best", "best"), 
+                    ("2160p", "2160p (4K)"), 
+                    ("1080p", "1080p (FHD)"), 
+                    ("720p", "720p (HD)"), 
+                    ("480p", "480p (SD)"), 
+                    ("320", "320 kbps"), 
+                    ("192", "192 kbps")
+                ], value="best", id="dl-quality")
+                
+        yield Static("Progress: Idle", id="dl-progress-text")
+        yield Static("ETA: N/A | Speed: N/A", id="dl-speed-eta")
+        yield Button("START DOWNLOAD", variant="success", id="btn-start-download")
+
+class QueueView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Static("[bold #ff0055]⏳ BATCH QUEUE HUB[/bold #ff0055]", classes="title")
+        yield DataTable(id="queue-table")
+        with Horizontal(classes="button-row"):
+            yield Button("Add Clipboard URL", variant="primary", id="btn-queue-add")
+            yield Button("START PROCESSOR", variant="success", id="btn-queue-run")
+            yield Button("Clear Completed", variant="error", id="btn-queue-clear")
+
+    def refresh_queue(self) -> None:
+        try:
+            table = self.query_one("#queue-table", DataTable)
+            table.clear()
+            if not table.columns:
+                table.add_columns("ID", "URL", "Mode", "Quality", "Status")
+            
+            q_manager = queue.QueueManager()
+            items = q_manager.get_items()
+            for idx, item in enumerate(items, 1):
+                table.add_row(
+                    str(idx),
+                    item.get("url", "")[:50],
+                    item.get("mode", "video"),
+                    item.get("quality", "best"),
+                    item.get("status", "pending")
+                )
+        except Exception:
+            pass
+
+class LibraryView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Static("[bold #ff0055]📁 LOCAL MEDIA LIBRARY[/bold #ff0055]", classes="title")
+        yield Label("Search Filter:")
+        yield Input(placeholder="Type to filter file list...", id="lib-search")
+        yield DataTable(id="lib-table")
+        with Horizontal(classes="button-row"):
+            yield Button("Open / Play Selected", variant="success", id="btn-lib-play")
+            yield Button("Delete File", variant="error", id="btn-lib-delete")
+            yield Button("Scan Files", variant="primary", id="btn-lib-scan")
+
+    def refresh_library(self, search_query="") -> None:
+        try:
+            table = self.query_one("#lib-table", DataTable)
+            table.clear()
+            if not table.columns:
+                table.add_columns("File Name", "Type", "Size", "File Path")
+            
+            d_dir = Path(config.get("download_dir"))
+            if d_dir.exists():
+                for f in d_dir.iterdir():
+                    if f.is_file() and f.suffix.lower() in ('.mp4', '.mkv', '.mp3', '.m4a', '.webm', '.jpg', '.png', '.webp'):
+                        if search_query and search_query.lower() not in f.name.lower():
+                            continue
+                            
+                        # Guess size
+                        sz = f.stat().st_size
+                        sz_str = downloader.format_size(sz)
+                        
+                        # Guess type
+                        ftype = "Audio" if f.suffix.lower() in ('.mp3', '.m4a') else ("Image" if f.suffix.lower() in ('.jpg', '.png', '.webp') else "Video")
+                        
+                        table.add_row(f.name, ftype, sz_str, str(f))
+        except Exception:
+            pass
+
+class ToolsView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Static("[bold #ff0055]🛠️ FFMPEG STUDIO UTILITIES[/bold #ff0055]", classes="title")
+        yield Label("Action Options:")
+        yield Select([
+            ("Extract Audio (MP3)", "extract"),
+            ("Convert Format (MP4)", "convert"),
+            ("Compress Video", "compress")
+        ], value="extract", id="tool-action")
+        
+        yield Label("Media File Input Path:")
+        yield Input(placeholder="Enter absolute file path...", id="tool-file-input")
+        
+        yield Static("Operation Status: Idle", id="tool-status")
+        yield Button("PROCESS MEDIA", variant="success", id="btn-process-tool")
+
+class SettingsView(Vertical):
+    def compose(self) -> ComposeResult:
+        yield Static("[bold #ff0055]⚙️ SETTINGS CONFIG HUB[/bold #ff0055]", classes="title")
+        
+        yield Label("Download Target Folder:")
+        yield Input(id="set-dl-dir")
+        
+        yield Label("Speed Download Limit (e.g. 500K, 2M or empty):")
+        yield Input(id="set-speed")
+        
+        with Horizontal(classes="switch-row"):
+            yield Label("Enable Sound Alerts:")
+            yield Switch(id="set-sound")
+            
+        with Horizontal(classes="switch-row"):
+            yield Label("System Notifications:")
+            yield Switch(id="set-notif")
+            
+        yield Button("SAVE CONFIGURATION", variant="success", id="btn-save-settings")
+
+    def load_config(self) -> None:
+        try:
+            self.query_one("#set-dl-dir", Input).value = config.get("download_dir") or ""
+            self.query_one("#set-speed", Input).value = config.get("speed_limit") or ""
+            self.query_one("#set-sound", Switch).value = config.get("sound_alerts", True)
+            self.query_one("#set-notif", Switch).value = config.get("notifications", True)
+        except Exception:
+            pass
+
+class FSocietyTUIApp(App):
+    CSS = """
+    Screen {
+        background: #06090c;
+        color: #cbd5e1;
+        font-family: monospace;
+    }
+    
+    #title-panel {
+        background: #090d12;
+        border: double #ff0055;
+        margin: 1 2;
+        padding: 1 2;
+        height: auto;
+        color: #00ff66;
+    }
+    
+    #stats-row {
+        height: 6;
+        margin: 1 0;
+        layout: grid;
+        grid-size: 3;
+        grid-columns: 1fr 1fr 1fr;
+    }
+    
+    .card {
+        background: #0f172a;
+        border: round #1e293b;
+        padding: 1 2;
+        content-align: center middle;
+        text-align: center;
+        color: #ffffff;
+    }
+    
+    .title {
+        text-style: bold;
+        margin-bottom: 1;
+    }
+    
+    .section-title {
+        text-style: bold;
+        margin: 1 0;
+    }
+    
+    #sidebar {
+        width: 24;
+        background: #090d12;
+        border-right: thin #1e293b;
+        dock: left;
+    }
+    
+    #content-container {
+        padding: 1 2;
+    }
+    
+    #meta-card {
+        background: #0f172a;
+        border: round #38bdf8;
+        padding: 1 2;
+        margin: 1 0;
+        height: auto;
+    }
+    
+    .select-row {
+        height: auto;
+        margin: 1 0;
+    }
+    
+    .select-row > Vertical {
+        margin-right: 4;
+        width: 30;
+    }
+    
+    .button-row {
+        height: auto;
+        margin-top: 1;
+    }
+    
+    .button-row > Button {
+        margin-right: 2;
+    }
+    
+    .switch-row {
+        height: 4;
+        align: middle left;
+    }
+    
+    .switch-row > Label {
+        width: 30;
+    }
+    
+    Input {
+        background: #0f172a;
+        border: tall #38bdf8;
+        color: #ffffff;
+        margin-bottom: 1;
+    }
+    Input:focus {
+        border: tall #f43f5e;
+    }
+    
+    DataTable {
+        background: #0f172a;
+        border: round #1e293b;
+        height: 1fr;
+    }
+    
+    #dl-progress-text {
+        color: #00ff66;
+        text-style: bold;
+        margin-top: 1;
+    }
+    #dl-speed-eta {
+        color: #38bdf8;
+        margin-bottom: 1;
+    }
+    """
+
+    BINDINGS = [
+        Binding("ctrl+q", "quit", "Quit", show=True),
+        Binding("h", "switch_view('home')", "Home", show=False),
+        Binding("d", "switch_view('download')", "Download", show=False),
+        Binding("q", "switch_view('queue')", "Queue", show=False),
+        Binding("l", "switch_view('library')", "Library", show=False),
+        Binding("t", "switch_view('tools')", "Tools", show=False),
+        Binding("s", "switch_view('settings')", "Settings", show=False),
+    ]
+
+    current_view = reactive("home")
+
+    def compose(self) -> ComposeResult:
+        # Title panel
+        with Container(id="title-panel"):
+            yield Static(
+                "╭────────────────────────────────────────────╮\n"
+                "│ ⚡ F-SOCIETY MEDIA CENTER                   │\n"
+                "│ Version 1.0.0          ● System Ready      │\n"
+                "╰────────────────────────────────────────────╯"
+            )
+            
+        with Horizontal():
+            # Navigation Sidebar
+            with ListView(id="sidebar"):
+                yield ListItem(Label("🏠 Home"), id="nav-home")
+                yield ListItem(Label("📥 Download"), id="nav-download")
+                yield ListItem(Label("⏳ Queue"), id="nav-queue")
+                yield ListItem(Label("📁 Library"), id="nav-library")
+                yield ListItem(Label("🛠️ Tools"), id="nav-tools")
+                yield ListItem(Label("⚙️ Settings"), id="nav-settings")
+                
+            # Content Area
+            with Container(id="content-container"):
+                yield HomeView(id="view-home")
+                yield DownloadView(id="view-download")
+                yield QueueView(id="view-queue")
+                yield LibraryView(id="view-library")
+                yield ToolsView(id="view-tools")
+                yield SettingsView(id="view-settings")
+
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.show_view("home")
+        self.query_one("#view-home", HomeView).refresh_stats()
+
+    def show_view(self, view_name: str) -> None:
+        self.current_view = view_name
+        views = ["home", "download", "queue", "library", "tools", "settings"]
+        for v in views:
+            widget = self.query_one(f"#view-{v}")
+            widget.display = (v == view_name)
+            
+        # Refresh state on switch
+        if view_name == "home":
+            self.query_one("#view-home", HomeView).refresh_stats()
+        elif view_name == "queue":
+            self.query_one("#view-queue", QueueView).refresh_queue()
+        elif view_name == "library":
+            self.query_one("#view-library", LibraryView).refresh_library()
+        elif view_name == "settings":
+            self.query_one("#view-settings", SettingsView).load_config()
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        nav_id = event.item.id
+        if nav_id == "nav-home":
+            self.show_view("home")
+        elif nav_id == "nav-download":
+            self.show_view("download")
+        elif nav_id == "nav-queue":
+            self.show_view("queue")
+        elif nav_id == "nav-library":
+            self.show_view("library")
+        elif nav_id == "nav-tools":
+            self.show_view("tools")
+        elif nav_id == "nav-settings":
+            self.show_view("settings")
+
+    # Dynamic URL Metadata Fetcher
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "dl-url":
+            url = event.value.strip()
+            if downloader.validate_url(url):
+                self.query_one("#meta-title", Label).update("[bold #38bdf8]Fetching metadata in background...[/bold #38bdf8]")
+                self.run_worker(self.fetch_meta_task(url), thread=True)
+
+    async def fetch_meta_task(self, url: str) -> None:
+        info, err = downloader.fetch_video_info(url)
+        if info:
+            title = info.get("title", "Unknown")
+            duration = downloader.format_duration(info.get("duration"))
+            uploader = info.get("uploader", "Unknown")
+            
+            self.call_from_thread(self.update_meta_labels, title, duration, uploader)
+        else:
+            self.call_from_thread(self.update_meta_labels, f"Fetch failed: {err[:30]}", "N/A", "N/A")
+
+    def update_meta_labels(self, title: str, duration: str, uploader: str) -> None:
+        self.query_one("#meta-title", Label).update(f"[bold #ffffff]Title: {title}[/bold #ffffff]")
+        self.query_one("#meta-duration", Label).update(f"Duration: {duration}")
+        self.query_one("#meta-uploader", Label).update(f"Uploader: {uploader}")
+
+    # Downloader execute
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        btn_id = event.button.id
+        if btn_id == "btn-start-download":
+            url = self.query_one("#dl-url", Input).value.strip()
+            if not downloader.validate_url(url):
+                self.query_one("#dl-progress-text", Static).update("[bold #ff0055]Error: Invalid URL[/bold #ff0055]")
+                return
+                
+            mode = self.query_one("#dl-mode", Select).value
+            quality = self.query_one("#dl-quality", Select).value
+            
+            self.query_one("#btn-start-download", Button).disabled = True
+            self.query_one("#dl-progress-text", Static).update("Starting download...")
+            self.run_worker(self.download_task(url, mode, quality), thread=True)
+            
+        elif btn_id == "btn-save-settings":
+            dl_dir = self.query_one("#set-dl-dir", Input).value.strip()
+            speed = self.query_one("#set-speed", Input).value.strip()
+            sound = self.query_one("#set-sound", Switch).value
+            notif = self.query_one("#set-notif", Switch).value
+            
+            config.set("download_dir", dl_dir)
+            config.set("speed_limit", speed)
+            config.set("sound_alerts", sound)
+            config.set("notifications", notif)
+            self.notify("Configuration Saved Successfully!")
+            
+        elif btn_id == "btn-queue-add":
+            # Add URL from clipboard or input dialog (here from clipboard)
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                root.withdraw()
+                cb = root.clipboard_get().strip()
+                if downloader.validate_url(cb):
+                    q_manager = queue.QueueManager()
+                    q_manager.add_item(cb, "video", "best")
+                    self.query_one("#view-queue", QueueView).refresh_queue()
+                    self.notify(f"Added clipboard URL to queue.")
+                else:
+                    self.notify("No valid URL found in clipboard.", severity="warning")
+            except Exception as e:
+                self.notify(f"Could not read clipboard: {e}", severity="error")
+                
+        elif btn_id == "btn-queue-clear":
+            q_manager = queue.QueueManager()
+            q_manager.clear()
+            self.query_one("#view-queue", QueueView).refresh_queue()
+            self.notify("Queue Cleared.")
+            
+        elif btn_id == "btn-queue-run":
+            self.notify("Processing batch queue...")
+            self.run_worker(self.run_queue_task(), thread=True)
+
+        elif btn_id == "btn-lib-scan":
+            self.query_one("#view-library", LibraryView).refresh_library()
+            self.notify("Library scan complete.")
+
+        elif btn_id == "btn-lib-play":
+            # Play selected file
+            try:
+                table = self.query_one("#lib-table", DataTable)
+                row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
+                row = table.get_row(row_key)
+                filepath = row[3]
+                self.notify(f"Opening: {row[0]}")
+                self.open_file_crossplatform(filepath)
+            except Exception as e:
+                self.notify(f"Selection error: {e}", severity="warning")
+
+        elif btn_id == "btn-lib-delete":
+            try:
+                table = self.query_one("#lib-table", DataTable)
+                row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
+                row = table.get_row(row_key)
+                filepath = row[3]
+                os.remove(filepath)
+                self.query_one("#view-library", LibraryView).refresh_library()
+                self.notify(f"Deleted: {row[0]}")
+            except Exception as e:
+                self.notify(f"Failed to delete: {e}", severity="error")
+
+        elif btn_id == "btn-process-tool":
+            action = self.query_one("#tool-action", Select).value
+            filepath = self.query_one("#tool-file-input", Input).value.strip()
+            
+            if not os.path.exists(filepath):
+                self.query_one("#tool-status", Static).update("[bold #ff0055]Error: File not found[/bold #ff0055]")
+                return
+                
+            self.query_one("#tool-status", Static).update("Processing file with FFmpeg...")
+            self.run_worker(self.run_ffmpeg_task(action, filepath), thread=True)
+
+    def open_file_crossplatform(self, path: str) -> None:
+        try:
+            if sys.platform == 'win32':
+                os.startfile(path)
+            elif sys.platform == 'darwin':
+                import subprocess
+                subprocess.run(['open', path])
+            else:
+                import subprocess
+                subprocess.run(['xdg-open', path])
+        except Exception as e:
+            self.notify(f"Open failed: {e}", severity="error")
+
+    # Queue Worker
+    async def run_queue_task(self) -> None:
+        q_manager = queue.QueueManager()
+        success, msg = q_manager.run()
+        self.call_from_thread(self.on_queue_completed, msg)
+
+    def on_queue_completed(self, msg: str) -> None:
+        self.query_one("#view-queue", QueueView).refresh_queue()
+        self.notify(f"Batch completed: {msg}")
+
+    # FFmpeg Worker
+    async def run_ffmpeg_task(self, action: str, filepath: str) -> None:
+        success = False
+        msg = ""
+        try:
+            if action == "extract":
+                success, msg = ffmpeg.extract_audio(filepath)
+            elif action == "convert":
+                success, msg = ffmpeg.convert_format(filepath, "mp4")
+            elif action == "compress":
+                success, msg = ffmpeg.compress_video(filepath)
+        except Exception as e:
+            success = False
+            msg = str(e)
+        self.call_from_thread(self.on_ffmpeg_completed, success, msg)
+
+    def on_ffmpeg_completed(self, success: bool, msg: str) -> None:
+        if success:
+            self.query_one("#tool-status", Static).update("[bold #00ff66]FFmpeg processing complete![/bold #00ff66]")
+            self.notify("FFmpeg processing successful.")
+        else:
+            self.query_one("#tool-status", Static).update(f"[bold #ff0055]FFmpeg Failed: {msg[:30]}[/bold #ff0055]")
+            self.notify("FFmpeg operation failed.", severity="error")
+
+    # Downloader Worker
+    async def download_task(self, url: str, mode: str, quality: str) -> None:
+        def progress_cb(percent, speed, eta, downloaded, total, status, filename):
+            self.call_from_thread(self.update_download_progress, percent, speed, eta, downloaded, total, status, filename)
+
+        downloader.clear_progress_callbacks()
+        downloader.register_progress_callback(progress_cb)
+        
+        success = False
+        err_msg = ""
+        err_exception = None
+        try:
+            if mode == "video":
+                fmt = downloader.build_format_string(quality)
+                success = downloader.download_video_via_api(url, fmt)
+            elif mode == "audio":
+                success = downloader.download_audio_via_api(url, quality)
+            elif mode == "images":
+                success = downloader.download_image_gallery_via_api(url)
+        except downloader.DownloaderError as err:
+            success = False
+            err_exception = err
+        except Exception as e:
+            success = False
+            err_msg = str(e)
+
+        downloader.unregister_progress_callback(progress_cb)
+        self.call_from_thread(self.on_download_finished, success, err_msg, err_exception)
+
+    def update_download_progress(self, percent, speed, eta, downloaded, total, status, filename):
+        self.query_one("#dl-progress-text", Static).update(f"Progress: {int(percent)}% - {status.upper()}")
+        self.query_one("#dl-speed-eta", Static).update(f"ETA: {eta} | Speed: {speed} | Downloaded: {downloaded}/{total}")
+
+    def on_download_finished(self, success: bool, err_msg: str, err_exception: downloader.DownloaderError) -> None:
+        self.query_one("#btn-start-download", Button).disabled = False
+        if success:
+            self.query_one("#dl-progress-text", Static).update("[bold #00ff66]Download Complete![/bold #00ff66]")
+            self.notify("Media download successful!")
+        else:
+            if err_exception:
+                # Show structured error dialog/prompt details
+                error_box = (
+                    f"[bold #ff0055]Download Error Detected![/bold #ff0055]\n"
+                    f"Platform: {err_exception.platform}\n"
+                    f"Reason: {err_exception.reason}\n"
+                    f"Solution: {err_exception.solution}"
+                )
+                self.query_one("#dl-progress-text", Static).update(error_box)
+                self.notify("Download Failed: Platform Extractor Issue", severity="error")
+            else:
+                self.query_one("#dl-progress-text", Static).update(f"[bold #ff0055]Failed: {err_msg[:40]}[/bold #ff0055]")
+                self.notify("Download Failed.", severity="error")
+
+def run_tui():
+    app = FSocietyTUIApp()
+    app.run()
+
+if __name__ == "__main__":
+    run_tui()
