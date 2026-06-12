@@ -43,7 +43,11 @@ class SystemDiagnostics:
         self.log_report("Python", "Venv", "OK" if in_venv else "WARNING", venv_status)
         
         # Check required packages
-        packages = ["yt_dlp", "rich", "PySide6"]
+        if os.getenv("CI") == "true":
+            packages = ["yt_dlp", "rich", "textual"]
+        else:
+            packages = ["yt_dlp", "rich", "PySide6", "textual"]
+            
         missing = []
         for pkg in packages:
             try:

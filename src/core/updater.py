@@ -6,6 +6,12 @@ from src.core.ffmpeg import is_ffmpeg_available
 
 def check_command(cmd):
     try:
+        if cmd == "yt-dlp":
+            try:
+                subprocess.run([sys.executable, "-m", "yt_dlp", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return True
+            except:
+                pass
         subprocess.run([cmd, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except (FileNotFoundError, subprocess.SubprocessError):
@@ -16,6 +22,10 @@ def get_python_version():
     return f"{v.major}.{v.minor}.{v.micro}"
 
 def get_ytdlp_version():
+    try:
+        return subprocess.check_output([sys.executable, "-m", "yt_dlp", "--version"], text=True).strip()
+    except:
+        pass
     if check_command("yt-dlp"):
         try:
             return subprocess.check_output(["yt-dlp", "--version"], text=True).strip()
