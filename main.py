@@ -51,6 +51,15 @@ def entry_point():
     # 2. Parse command line arguments
     args = terminal_ui.parse_cli_args_and_run()
     
+    if os.environ.get("CI") == "true":
+        print("[CI DETECTED] Running headless system diagnostics...")
+        from src.core.diagnostics import SystemDiagnostics
+        diag = SystemDiagnostics()
+        success = diag.run_doctor()
+        if not success:
+            sys.exit(1)
+        sys.exit(0)
+        
     if args is not None:
         if args.gui:
             # Import GUI inside condition to prevent importing PySide6 in headless CLI environments
