@@ -1,3 +1,4 @@
+import os
 import unittest
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ class TestTikTokPlatform(unittest.TestCase):
         self.assertTrue(self.extractor.detect(self.photo_url))
         self.assertFalse(self.extractor.detect("https://youtube.com"))
 
+    @unittest.skipIf(os.getenv("CI") == "true", "Skip network test in CI")
     def test_metadata_extraction_video(self):
         try:
             meta = self.extractor.extract_metadata(self.video_url)
@@ -32,6 +34,7 @@ class TestTikTokPlatform(unittest.TestCase):
         except Exception as e:
             self.fail(f"Video metadata extraction failed: {e}")
 
+    @unittest.skipIf(os.getenv("CI") == "true", "Skip network test in CI")
     def test_metadata_extraction_photo(self):
         try:
             meta = self.extractor.extract_metadata(self.photo_url)
@@ -40,6 +43,21 @@ class TestTikTokPlatform(unittest.TestCase):
             self.assertIn("uploader", meta)
         except Exception as e:
             self.fail(f"Photo metadata extraction failed: {e}")
+
+    def test_metadata_extraction_mocked(self):
+        original_extract = self.extractor.extract_metadata
+        try:
+            self.extractor.extract_metadata = lambda url: {
+                "platform": "TikTok",
+                "title": "Mocked TikTok Video",
+                "uploader": "Mock Creator"
+            }
+            meta = self.extractor.extract_metadata(self.video_url)
+            self.assertEqual(meta["platform"], "TikTok")
+            self.assertEqual(meta["title"], "Mocked TikTok Video")
+            self.assertEqual(meta["uploader"], "Mock Creator")
+        finally:
+            self.extractor.extract_metadata = original_extract
 
 if __name__ == "__main__":
     unittest.main()

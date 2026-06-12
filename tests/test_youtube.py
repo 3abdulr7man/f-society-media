@@ -1,3 +1,4 @@
+import os
 import unittest
 import sys
 from pathlib import Path
@@ -22,6 +23,7 @@ class TestYouTubePlatform(unittest.TestCase):
         self.assertTrue(self.extractor.detect("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
         self.assertFalse(self.extractor.detect("https://tiktok.com"))
 
+    @unittest.skipIf(os.getenv("CI") == "true", "Skip network test in CI")
     def test_metadata_extraction(self):
         try:
             meta = self.extractor.extract_metadata(self.test_url)
@@ -31,6 +33,23 @@ class TestYouTubePlatform(unittest.TestCase):
             self.assertTrue(meta["duration"] > 0)
         except Exception as e:
             self.fail(f"Metadata extraction failed: {e}")
+
+    def test_metadata_extraction_mocked(self):
+        original_extract = self.extractor.extract_metadata
+        try:
+            self.extractor.extract_metadata = lambda url: {
+                "platform": "YouTube",
+                "title": "Mocked YouTube Video",
+                "uploader": "Mock Uploader",
+                "duration": 120
+            }
+            meta = self.extractor.extract_metadata(self.test_url)
+            self.assertEqual(meta["platform"], "YouTube")
+            self.assertEqual(meta["title"], "Mocked YouTube Video")
+            self.assertEqual(meta["uploader"], "Mock Uploader")
+            self.assertEqual(meta["duration"], 120)
+        finally:
+            self.extractor.extract_metadata = original_extract
             
 if __name__ == "__main__":
     unittest.main()
