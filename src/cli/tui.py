@@ -98,7 +98,6 @@ ASCII_BANNER = """
   ██║         ███████║    ╚██████╔╝╚██████╗██║███████╗   ██║      ██║   
   ╚═╝         ╚══════╝     ╚═════╝  ╚═════╝╚═╝╚══════╝   ╚═╝      ╚═╝   
 [/bold #ff0055]
-[dim #38bdf8]                       [ ⚲ CONNECTED TO CORE NETWORK ]                       [/dim #38bdf8]
 """.strip()
 
 class HomeView(Vertical):
