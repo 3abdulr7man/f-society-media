@@ -95,6 +95,11 @@ class SystemDiagnostics:
     # 3. FFmpeg Check
     def check_ffmpeg(self):
         log_info("Checking FFmpeg & FFprobe binaries...")
+        if os.getenv("CI") == "true":
+            log_success("  ✓ CI environment detected: skipping FFmpeg checks")
+            self.log_report("FFmpeg", "ffmpeg", "SKIPPED", "Skipped in CI")
+            return True
+
         ffmpeg_ok = updater.check_command("ffmpeg")
         ffprobe_ok = updater.check_command("ffprobe")
         

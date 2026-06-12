@@ -8,12 +8,13 @@ def check_command(cmd):
     try:
         if cmd == "yt-dlp":
             try:
-                subprocess.run([sys.executable, "-m", "yt_dlp", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                return True
+                res = subprocess.run([sys.executable, "-m", "yt_dlp", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if res.returncode == 0:
+                    return True
             except:
                 pass
-        subprocess.run([cmd, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return True
+        res = subprocess.run([cmd, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return res.returncode == 0
     except (FileNotFoundError, subprocess.SubprocessError):
         return False
 
