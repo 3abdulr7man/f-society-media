@@ -1,5 +1,6 @@
 import unittest
 import sys
+import os
 from pathlib import Path
 
 # Add project root to sys.path
@@ -8,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.core import database, config
 from src.core.platforms.youtube import YouTubePlatformExtractor
 
+@unittest.skipIf(os.getenv("CI") == "true", "Skipping integration test in CI")
 class TestYouTubePlatformReal(unittest.TestCase):
     
     def setUp(self):
