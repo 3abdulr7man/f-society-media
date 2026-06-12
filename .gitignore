@@ -24,7 +24,6 @@ env/
 # SQLite Database & user data files
 *.db
 *.json
-!info.json
 *.log
 cookies.txt
 
