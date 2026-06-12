@@ -1,5 +1,10 @@
 import os
 import sys
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 import threading
 import datetime
 from pathlib import Path

@@ -40,10 +40,14 @@ def watch_clipboard():
         print("\nClipboard watch stopped.")
 
 def entry_point():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     print("F-SOCIETY MEDIA STARTING...")
-    print("✓ Environment check")
-    print("✓ Dependencies loaded")
-    print("✓ Core initialized\n")
+    print("[OK] Environment check")
+    print("[OK] Dependencies loaded")
+    print("[OK] Core initialized\n")
 
     # 1. Initialize SQLite Database
     database.init_db()
