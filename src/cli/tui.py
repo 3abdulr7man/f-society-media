@@ -23,24 +23,24 @@ class DashboardGifWidget(Static):
         self.frame = 0
         self.frames = [
             "[bold #ff0055]┌─┐[/bold #ff0055] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #ff0055]┌─┐[/bold #ff0055]\n"
-            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#00ff66]● ACTIVE[/#00ff66]\n"
             "  [#e11d48]⚲ SCANNING PORT[/#e11d48]\n"
-            "  [#38bdf8]⚙ MEMORY OK    [/#38bdf8]",
+            "  [#38bdf8]⚙MEMORY OK    [/#38bdf8]",
             
             "[bold #00ff66]├─┤[/bold #00ff66] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #00ff66]├─┤[/bold #00ff66]\n"
-            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#00ff66]● ACTIVE[/#00ff66]\n"
             "  [#e11d48]⚲ SCANNING PORT.[/#e11d48]\n"
-            "  [#38bdf8]⚙ MEMORY OK.   [/#38bdf8]",
+            "  [#38bdf8]⚙MEMORY OK.   [/#38bdf8]",
 
             "[bold #ff0055]└─┘[/bold #ff0055] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #ff0055]└─┘[/bold #ff0055]\n"
-            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#00ff66]● ACTIVE[/#00ff66]\n"
             "  [#e11d48]⚲ SCANNING PORT..[/#e11d48]\n"
-            "  [#38bdf8]⚙ MEMORY OK..  [/#38bdf8]",
+            "  [#38bdf8]⚙MEMORY OK..  [/#38bdf8]",
 
             "[bold #00ff66]├─┤[/bold #00ff66] [bold #38bdf8]CORE DIGITAL STATUS[/bold #38bdf8] [bold #00ff66]├─┤[/bold #00ff66]\n"
-            "  [#00ff66]● ACTIVE [SYSTEM][/#00ff66]\n"
+            "  [#00ff66]● ACTIVE[/#00ff66]\n"
             "  [#e11d48]⚲ SCANNING PORT...[/#e11d48]\n"
-            "  [#38bdf8]⚙ MEMORY OK... [/#38bdf8]"
+            "  [#38bdf8]⚙MEMORY OK... [/#38bdf8]"
         ]
         self.update(self.frames[0])
         self.set_interval(0.4, self.animate)
