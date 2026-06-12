@@ -22,6 +22,12 @@
 
 ---
 
+## Screenshots
+
+![F-SOCIETY TUI Dashboard](resources/tui_screenshot.png)
+
+---
+
 ## Repository Structure
 
 ```
