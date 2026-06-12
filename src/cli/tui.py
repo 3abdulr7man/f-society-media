@@ -103,7 +103,6 @@ ASCII_BANNER = """
 
 class HomeView(Vertical):
     def compose(self) -> ComposeResult:
-        yield Static(ASCII_BANNER, id="home-banner")
         yield Static("[bold #ff0055]⚡ F-SOCIETY MEDIA DASHBOARD[/bold #ff0055]", classes="title")
         
         # Stats row
@@ -588,6 +587,7 @@ class FSocietyTUIApp(App):
     current_view = reactive("home")
 
     def compose(self) -> ComposeResult:
+        yield Static(ASCII_BANNER, id="home-banner")
         with Horizontal():
             # Navigation Sidebar
             with ListView(id="sidebar"):
