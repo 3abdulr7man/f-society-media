@@ -34,7 +34,7 @@ jobs:
       env:
         CI: true
       run: |
-        python -m unittest discover tests
+        python -m unittest discover tests/unit -v
 
     - name: Run CLI health checks (Doctor)
       env:
