@@ -69,7 +69,7 @@ jobs:
     - name: Build with PyInstaller (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        pyinstaller --onefile --windowed --name=F-SOCIETY main.py
+        pyinstaller --onefile --name=F-SOCIETY main.py
       # Output in dist/F-SOCIETY.exe
 
     - name: Build with PyInstaller (Linux)
@@ -81,8 +81,8 @@ jobs:
     - name: Build with PyInstaller (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        pyinstaller --onefile --windowed --name=F-SOCIETY main.py
-      # Output in dist/F-SOCIETY.app / dist/F-SOCIETY
+        pyinstaller --onefile --name=F-SOCIETY main.py
+      # Output in dist/F-SOCIETY / dist/F-SOCIETY.app
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
