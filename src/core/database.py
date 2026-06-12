@@ -1,13 +1,19 @@
 import os
+import sys
 import sqlite3
 import json
 import datetime
 from pathlib import Path
 
-DB_FILE = str(Path(__file__).parent.parent.parent.resolve() / "f_society.db")
-HISTORY_JSON = str(Path(__file__).parent.parent.parent.resolve() / "history.json")
-LOG_JSON = str(Path(__file__).parent.parent.parent.resolve() / "download_log.json")
-SETTINGS_JSON = str(Path(__file__).parent.parent.parent.resolve() / "settings.json")
+if getattr(sys, 'frozen', False):
+    PROJECT_ROOT = Path(sys.executable).parent.resolve()
+else:
+    PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+
+DB_FILE = str(PROJECT_ROOT / "f_society.db")
+HISTORY_JSON = str(PROJECT_ROOT / "history.json")
+LOG_JSON = str(PROJECT_ROOT / "download_log.json")
+SETTINGS_JSON = str(PROJECT_ROOT / "settings.json")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_FILE)

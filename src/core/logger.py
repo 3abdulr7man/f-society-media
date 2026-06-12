@@ -6,7 +6,11 @@ from pathlib import Path
 from src.core import config
 
 print_lock = threading.Lock()
-LOG_DIR = Path(__file__).parent.parent.parent.resolve() / "logs"
+if getattr(sys, 'frozen', False):
+    PROJECT_ROOT = Path(sys.executable).parent.resolve()
+else:
+    PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+LOG_DIR = PROJECT_ROOT / "logs"
 
 def init_logger():
     try:
