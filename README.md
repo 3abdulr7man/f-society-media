@@ -26,7 +26,10 @@
 
 ## 📸 Screenshots
 
-![F-SOCIETY TUI Dashboard](resources/tui_screenshot.png)
+<p align="center">
+  <img src="resources/tui_home.png" alt="F-SOCIETY TUI Dashboard" width="48%">
+  <img src="resources/tui_download.png" alt="F-SOCIETY TUI Download Center" width="48%">
+</p>
 
 ---
 
