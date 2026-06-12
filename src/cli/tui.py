@@ -98,7 +98,6 @@ ASCII_BANNER = """
   ██║         ███████║    ╚██████╔╝╚██████╗██║███████╗   ██║      ██║   
   ╚═╝         ╚══════╝     ╚═════╝  ╚═════╝╚═╝╚══════╝   ╚═╝      ╚═╝   
 [/bold #ff0055]
-[dim #38bdf8]                       [ ⚲ CONNECTED TO CORE NETWORK ]                       [/dim #38bdf8]
 """
 
 class HomeView(Vertical):
@@ -112,13 +111,7 @@ class HomeView(Vertical):
             yield Static("Completed\n0", id="stat-completed", classes="card")
             yield Static("Storage Used\n0.00 GB", id="stat-storage", classes="card")
             
-        with Horizontal(id="status-container"):
-            yield DashboardGifWidget(id="hacker-gif")
-            with Vertical(id="dashboard-overview"):
-                yield Label("[bold #38bdf8]⚡ Dashboard Overview[/bold #38bdf8]")
-                yield Label("[dim]⚙ Scanning:[/dim] [bold #00ff66]active[/bold #00ff66]")
-                yield Label("[dim]⚙ CPU:[/dim] [bold #38bdf8]bestvideo+bestaudio/best[/bold #38bdf8]")
-                yield Label("[dim]⚙ Memory:[/dim] [bold #cbd5e1]5MB[/bold #cbd5e1]")
+        yield DashboardGifWidget(id="hacker-gif")
         
         yield Label("[bold #38bdf8]Recent Database Downloads:[/bold #38bdf8]", classes="section-title")
         yield DataTable(id="recent-table")
@@ -145,9 +138,9 @@ class HomeView(Vertical):
             storage_gb = 0.0
 
         try:
-            self.query_one("#stat-downloads", Static).update(f"Downloads      [dim #38bdf8]▂▄▆█[/dim #38bdf8]\n[bold #38bdf8]{total}[/bold #38bdf8]")
-            self.query_one("#stat-completed", Static).update(f"Completed      [dim #00ff66]▂▄▆█[/dim #00ff66]\n[bold #00ff66]{completed}[/bold #00ff66]")
-            self.query_one("#stat-storage", Static).update(f"Storage Used   [dim #f59e0b]▂▄▆█[/dim #f59e0b]\n[bold #f59e0b]{storage_gb:.2f} GB[/bold #f59e0b]")
+            self.query_one("#stat-downloads", Static).update(f"Downloads\n[bold #38bdf8]{total}[/bold #38bdf8]")
+            self.query_one("#stat-completed", Static).update(f"Completed\n[bold #00ff66]{completed}[/bold #00ff66]")
+            self.query_one("#stat-storage", Static).update(f"Storage Used\n[bold #f59e0b]{storage_gb:.2f} GB[/bold #f59e0b]")
         except Exception:
             pass
 
@@ -164,9 +157,9 @@ class HomeView(Vertical):
             for item in history[:10]:
                 status = item.get("status", "success")
                 if status == "success":
-                    status_styled = "[bold #00ff66]✓ success[/bold #00ff66]"
+                    status_styled = "[bold #00ff66]success[/bold #00ff66]"
                 else:
-                    status_styled = "[bold #ff0055]✗ failed[/bold #ff0055]"
+                    status_styled = "[bold #ff0055]failed[/bold #ff0055]"
                 
                 table.add_row(
                     item.get("platform", "Unknown"),
@@ -570,30 +563,17 @@ class FSocietyTUIApp(App):
         height: auto;
     }
     
-    #status-container {
+    #hacker-gif {
         background: #090d12;
         border: round #38bdf8;
-        height: auto;
-        margin: 1 0;
         padding: 1 2;
-    }
-    
-    #hacker-gif {
-        width: 35;
-        margin-right: 4;
-    }
-    
-    #dashboard-overview {
-        width: 1fr;
-    }
-    
-    #dashboard-overview > Label {
-        margin-bottom: 1;
+        margin: 1 0;
+        height: auto;
     }
     """
 
     BINDINGS = [
-        Binding("ctrl+q", "quit", "quit", show=True),
+        Binding("ctrl+q", "quit", "Quit", show=True),
         Binding("h", "switch_view('home')", "Home", show=False),
         Binding("d", "switch_view('download')", "Download", show=False),
         Binding("q", "switch_view('queue')", "Queue", show=False),

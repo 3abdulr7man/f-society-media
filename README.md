@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="resources/logo.png" alt="F-SOCIETY Logo" width="600">
+</p>
+
 # ⚡ F-SOCIETY MEDIA CENTER
 
 [![Python Version](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/downloads/)
