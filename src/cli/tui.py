@@ -141,10 +141,12 @@ class DownloadView(Vertical):
                     ("320", "320 kbps"), 
                     ("192", "192 kbps")
                 ], value="best", id="dl-quality")
+            with Vertical():
+                yield Label("Action:")
+                yield Button("START DOWNLOAD", variant="success", id="btn-start-download")
                 
         yield Static("Progress: Idle", id="dl-progress-text")
         yield Static("ETA: N/A | Speed: N/A", id="dl-speed-eta")
-        yield Button("START DOWNLOAD", variant="success", id="btn-start-download")
 
 class QueueView(Vertical):
     def compose(self) -> ComposeResult:
