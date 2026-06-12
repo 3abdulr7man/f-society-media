@@ -563,12 +563,12 @@ class FSocietyTUIApp(App):
         with Horizontal():
             # Navigation Sidebar
             with ListView(id="sidebar"):
-                yield ListItem(Label("[Home]"), id="nav-home")
-                yield ListItem(Label("[Download]"), id="nav-download")
-                yield ListItem(Label("[Queue]"), id="nav-queue")
-                yield ListItem(Label("[Library]"), id="nav-library")
-                yield ListItem(Label("[Tools]"), id="nav-tools")
-                yield ListItem(Label("[Settings]"), id="nav-settings")
+                yield ListItem(Label("Home"), id="nav-home")
+                yield ListItem(Label("Download"), id="nav-download")
+                yield ListItem(Label("Queue"), id="nav-queue")
+                yield ListItem(Label("Library"), id="nav-library")
+                yield ListItem(Label("Tools"), id="nav-tools")
+                yield ListItem(Label("Settings"), id="nav-settings")
                 
             # Content Area
             with Container(id="content-container"):
