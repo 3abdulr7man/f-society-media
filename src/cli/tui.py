@@ -91,12 +91,15 @@ class ErrorRecoveryScreen(ModalScreen):
 
 ASCII_BANNER = """
 [bold #ff0055]
-   █▀▀   █▀▀  █▀▀█  █▀▀ █  █▀▀ ▀█▀ █ █
-   █▀▀   ▀▀█  █  █  █   █  █▀▀  █  █▄█
-   ▀     ▀▀▀  ▀▀▀▀  ▀▀▀ ▀  ▀▀▀  ▀   ▀ 
+  ███████╗    ███████╗     ██████╗  ██████╗██╗███████╗████████╗██╗   ██╗
+  ██╔════╝    ██╔════╝    ██╔═══██╗██╔════╝██║██╔════╝╚══██╔══╝╚██╗ ██╔╝
+  █████╗      ███████╗    ██║   ██║██║     ██║█████╗     ██║    ╚████╔╝ 
+  ██╔══╝      ╚════██║    ██║   ██║██║     ██║██╔══╝     ██║     ╚██╔╝  
+  ██║         ███████║    ╚██████╔╝╚██████╗██║███████╗   ██║      ██║   
+  ╚═╝         ╚══════╝     ╚═════╝  ╚═════╝╚═╝╚══════╝   ╚═╝      ╚═╝   
 [/bold #ff0055]
-[dim #38bdf8]   [ ⚲ CONNECTED TO CORE NETWORK ]   [/dim #38bdf8]
-"""
+[dim #38bdf8]                       [ ⚲ CONNECTED TO CORE NETWORK ]                       [/dim #38bdf8]
+""".strip()
 
 class HomeView(Vertical):
     def compose(self) -> ComposeResult:
@@ -554,8 +557,8 @@ class FSocietyTUIApp(App):
     #home-banner {
         background: #090d12;
         border: double #ff0055;
-        padding: 1 2;
-        margin-bottom: 1;
+        padding: 0 2;
+        margin-bottom: 0;
         text-align: center;
         height: auto;
     }
