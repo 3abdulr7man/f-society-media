@@ -225,6 +225,10 @@ class SystemDiagnostics:
     # 6. Network Check
     def check_network(self):
         log_info("Checking network connectivity...")
+        if os.getenv("CI") == "true":
+            log_success("  ✓ CI environment detected: skipping network checks")
+            self.log_report("Network", "Internet", "SKIPPED", "Skipped in CI")
+            return True
         # Check standard host resolve
         try:
             socket.setdefaulttimeout(3)

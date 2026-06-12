@@ -39,3 +39,11 @@ F-SOCIETY.app
 .idea/
 .DS_Store
 Thumbs.db
+
+# Diagnostic and temp files
+diagnostic_report.txt
+.sixth/
+*.db
+*.db-journal
+*.log
+
