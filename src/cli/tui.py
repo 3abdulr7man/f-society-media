@@ -342,7 +342,6 @@ class FSocietyTUIApp(App):
     
     #topbar-title {
         width: 1fr;
-        font-size: 15;
     }
     
     #topbar-status {
@@ -510,7 +509,7 @@ class FSocietyTUIApp(App):
     
     #btn-close-help {
         margin-top: 1;
-        horizontal-align: center;
+        align-horizontal: center;
     }
     
     #err-container {
